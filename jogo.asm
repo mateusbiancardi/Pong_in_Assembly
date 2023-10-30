@@ -20,7 +20,7 @@ segment code
         mov         ah,0
         int         10h
 
-;desenhar retas
+;pintar
 
         mov     byte[cor],branco_intenso    ;baixo
         mov     ax,0
@@ -68,11 +68,22 @@ segment code
         call        line
 
 
+
 delay: ; Esteja atento pois talvez seja importante salvar contexto (no caso, CX, o que NÃO foi feito aqui).
         mov cx, word [velocidade] ; Carrega “velocidade” em cx (contador para loop)
 
 
 continua:
+
+        mov     byte[cor],preto ; limpa bola
+        mov     ax,[px]
+        push        ax
+        mov     ax,[py]
+        push        ax
+        mov     ax,10
+        push        ax
+        call    full_circle
+
         mov bx, [vx]
         add [px], bx
         mov bx, [vy]
@@ -87,20 +98,16 @@ continua:
         push        ax
         call    full_circle
 
-        mov     byte[cor], cyan    ;jogador
-        mov     ax,50
+        mov     byte[cor], cyan    ;raquete
+        mov     ax,590
         push        ax
         mov     ax,[player_y1]
         push        ax
-        mov     ax,50
+        mov     ax,590
         push        ax
         mov     ax,[player_y2]
         push        ax
         call        line
-
-        ;mov ah, 08h      ; set up for keyboard check
-        ;int 14h         ; check for keystroke
-        ;jnz verificar_teclas ; jump if no key was pressed
        
         pop cx ; Recupera cx da pilha
         loop del1 ; No loop del1, cx é decrementado até que volte a ser zero
@@ -110,51 +117,69 @@ del2:
         push cx ; Coloca cx na pilha para usa-lo em outro loop
         mov cx, 0800h ; Teste modificando este valor
 del1:
-        mov     byte[cor],preto ;cabe�a
-        mov     ax,[px]
-        push        ax
-        mov     ax,[py]
-        push        ax
-        mov     ax,10
-        push        ax
-        call    full_circle
 
-        mov bx, 629
+
+        mov bx, 630
         cmp [px], bx
-        jz moveesquerda
+        jge moveesquerda
 
         mov bx, 10
         cmp [px], bx
-        jz movedireita
+        jle movedireita
 
         mov bx, 470
         cmp [py], bx
-        jz movebaixo
+        jge movebaixo
 
-        mov bx, 10
+        mov bx, 15
         cmp [py], bx
-        jz movecima
+        jle movecima
+
+        mov ah, 0bh      
+        int 21h
+        cmp al,0
+        jne verificar_teclas 
+        call calcular_colisao_raquete
+        jmp continua
 
 call delay
 call del1
 call del2
 
 moveesquerda:
-    mov bx, -1
-    mov [vx], bx
-    jmp continua
+        mov bx, 120
+        mov [px], bx
+        jmp continua
 movedireita:
-    mov bx, 1
-    mov [vx], bx
-    jmp continua
+
+        mov ax, [vx]
+        neg ax
+        mov bx, ax
+        mov [vx], bx
+        jmp continua
+
 movebaixo:
-    mov bx, -1
-    mov [vy], bx
-    jmp continua
+
+        mov ax, [vy]
+        neg ax
+        mov bx, ax
+        mov [vy], bx
+        jmp continua
+        
 movecima:
-    mov bx, 1
-    mov [vy], bx
-    jmp continua
+
+        mov ax, [vy]
+        neg ax
+        mov bx, ax
+        mov [vy], bx
+        jmp continua
+
+sai:
+        mov ah,0 ; set video mode
+        mov al,[modo_anterior] ; recupera o modo anterior
+        int 10h
+        mov ax,4c00h
+        int 21h
 
 verificar_teclas:
         push bp
@@ -163,14 +188,23 @@ verificar_teclas:
         ; Verifica se a tecla de seta para cima foi pressionada
         mov ah, 08h
         int 21h
-        cmp al, 77h ; Código ASCII para a tecla 'w'
-        jne verificar_baixo ;
+        cmp al, 73h ; Código ASCII para a tecla 's'
+        je sai
+        cmp al, 70h ; Código ASCII para a tecla 'p'
+        je aumenta_velocidade
+        cmp al, 6Dh ; Código ASCII para a tecla 'm'
+        je diminui_velocidade
+        cmp al, 63h ; Código ASCII para a tecla 'c'
+        jne verificar_baixo ; 
 
-        ; Incrementa player_velocity em player_y1 e player_y2
-        mov ax, 5
+        call limpa_jogador
+        mov ax, 10
+        mov bx, 465
+        cmp [player_y2], bx
+        jge fim_verificar_teclas
         add ax, [player_y1]
         mov [player_y1], ax
-        mov ax, 5
+        mov ax, 10
         add ax, [player_y2]
         mov [player_y2], ax
 
@@ -178,27 +212,116 @@ verificar_teclas:
 
 verificar_baixo:
         ; Verifica se a tecla de seta para baixo foi pressionada
-        cmp al, 73h ; Verifica se a tecla "s" foi pressionada
+        cmp al, 62h ; Verifica se a tecla "b" foi pressionada
         jne fim_verificar_teclas ; Se a tecla de seta para baixo não foi pressionada, finaliza a função
 
-        ; Incrementa player_velocity em player_y1 e player_y2
-        mov ax, -5
+        call limpa_jogador
+        mov ax, -10
+        mov bx, 15
+        cmp [player_y1], bx
+        jle fim_verificar_teclas
         add ax, [player_y1]
         mov [player_y1], ax
-        mov ax, -5
+        mov ax, -10
         add ax, [player_y2]
         mov [player_y2], ax
+        jmp fim_verificar_teclas
+
+aumenta_velocidade:
+        mov ax, [set_velocity]
+        cmp ax, 4
+        je fim_verificar_teclas
+        add ax, ax
+        mov [set_velocity], ax
+        mov [vx], ax
+        mov [vy], ax
+        jmp fim_verificar_teclas
+
+diminui_velocidade:
+        mov ax, [set_velocity]
+        cmp ax, 1
+        je fim_verificar_teclas
+        cmp ax, 2
+        je se_velocidade_2
+        cmp ax, 4
+        je se_velocidade_4
 
 fim_verificar_teclas:
         pop bp
+        jmp continua
+
+se_velocidade_2:
+        sub ax, 1
+        mov [set_velocity], ax
+        mov [vx], ax
+        mov [vy], ax
+        jmp fim_verificar_teclas
+
+se_velocidade_4:
+        sub ax, 2
+        mov [set_velocity], ax
+        mov [vx], ax
+        mov [vy], ax
+        jmp fim_verificar_teclas
+
+
+calcular_colisao_raquete:
+        mov ax, 580
+        cmp [px], ax
+        je verifica1
         ret
 
-sai:
-        mov ah,0 ; set video mode
-        mov al,[modo_anterior] ; recupera o modo anterior
-        int 10h
-        mov ax,4c00h
-        int 21h
+verifica1:
+        mov bx, [player_y2]
+        add bx, 10
+        cmp [py], bx
+        jle rebate_cima1
+        mov bx, [player_y1]
+        sub bx, 10
+        cmp [py], bx
+        jge rebate_baixo1
+        ret
+
+rebate_cima1:
+        mov bx, [player_y1]
+        add bx, 10
+        cmp [py], bx
+        jge rebate_cima2
+        ret
+
+rebate_cima2:
+        mov ax, [vx]
+        neg ax
+        mov bx, ax
+        mov [vx], bx
+        ret
+
+rebate_baixo1:
+        mov bx, [player_y2]
+        add bx, 10
+        cmp [py], bx
+        jle rebate_baixo2
+        ret
+
+rebate_baixo2:
+        mov ax, [vx]
+        neg ax
+        mov bx, ax
+        mov [vx], bx
+        ret
+
+limpa_jogador:
+        mov     byte[cor], preto    ;limpa jogador
+        mov     ax,590
+        push        ax
+        mov     ax,[player_y1]
+        push        ax
+        mov     ax,590
+        push        ax
+        mov     ax,[player_y2]
+        push        ax
+        call        line
+        ret
 
 
 ;delay
@@ -772,13 +895,14 @@ linha       dw          0
 coluna      dw          0
 deltax      dw      0
 deltay      dw      0   
-mens        db          'duas cervejas'
+mens        db          'nada'
 velocidade      dw      10
 vx      dw      1
 vy      dw      1
+set_velocity  dw     1
 px      dw      320
 py      dw      240
-player_y1    dw      150
+player_y1    dw      250
 player_y2    dw      300
 ;*************************************************************************
 segment stack stack
