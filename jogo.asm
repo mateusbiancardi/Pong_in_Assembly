@@ -192,9 +192,9 @@ moveesquerda:
         call limpa_bola
         mov bx, 120
         mov [px], bx
-        mov ax, [pontos_maquina]
+        mov ax, [pontos_maquina_unidade]
         add ax, 1
-        mov [pontos_maquina], ax
+        mov [pontos_maquina_unidade], ax
         call printa_ponto_maquina
         jmp continua
 movedireita:
@@ -275,6 +275,7 @@ verificar_baixo:
         mov [player_y2], ax
         jmp fim_verificar_teclas
 
+
 aumenta_velocidade:
         mov ax, [set_velocity]
         cmp ax, 4
@@ -285,6 +286,10 @@ aumenta_velocidade:
         mov [vy], ax
         jmp fim_verificar_teclas
 
+fim_verificar_teclas:
+        pop bp
+        jmp continua
+
 diminui_velocidade:
         mov ax, [set_velocity]
         cmp ax, 1
@@ -293,10 +298,6 @@ diminui_velocidade:
         je se_velocidade_2
         cmp ax, 4
         je se_velocidade_4
-
-fim_verificar_teclas:
-        pop bp
-        jmp continua
 
 se_velocidade_2:
         sub ax, 1
@@ -311,6 +312,68 @@ se_velocidade_4:
         mov [vx], ax
         mov [vy], ax
         jmp fim_verificar_teclas
+
+
+printa_ponto_maquina:
+        xor ax,ax
+        mov al,[pontos_maquina_unidade] 
+
+        mov ax, [pontos_maquina_unidade]
+        cmp ax, 10
+        je zera_pontos_unidades
+
+        mov     cx,1			;numero de caracteres
+        mov     bx,0
+        mov     dh,2			;linha 0-29
+        mov     dl,35 			;coluna 0-79
+        mov	   byte[cor],rosa
+
+        call printa1
+        
+        ret
+
+zera_pontos_unidades:
+        mov ax, 0
+        mov [pontos_maquina_unidade], ax
+        mov ax, [pontos_maquina_dezena]
+        add ax, 1
+        mov [pontos_maquina_dezena], ax
+        ret
+
+printa1: 
+        call    cursor
+        mov     al,[bx+pontos_maquina_unidade]
+        call    caracter
+        dec     bx
+        inc  	dl	                ;avanca a coluna
+        loop    printa1
+        ret
+
+printa_dezena_maquina:
+        xor ax,ax
+        mov bx, [pontos_maquina_dezena]
+        add bx, 1
+        mov [pontos_maquina_dezena], bx
+        mov al, [pontos_maquina_dezena]
+
+        mov     cx,1			;numero de caracteres
+        mov     bx,0
+        mov     dh,2			;linha 0-29
+        mov     dl,34 			;coluna 0-79
+        mov	   byte[cor],rosa
+
+        call printa2
+        ret
+
+printa2:
+        call    cursor
+        mov     al,[bx+pontos_maquina_dezena]
+        call    caracter
+        dec     bx
+        inc  	dl	                ;avanca a coluna
+        loop    printa2
+        ret
+
 
 
 calcular_colisao_raquete:
@@ -960,7 +1023,8 @@ py      dw      240
 player_y1    dw      250
 player_y2    dw      300
 pontos_jogador  db      '0'
-pontos_maquina  db      '0'
+pontos_maquina_unidade  db      '0'
+pontos_maquina_dezena  db      '0'
 ;*************************************************************************
 segment stack stack
             resb        512
