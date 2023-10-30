@@ -67,7 +67,45 @@ segment code
         push        ax
         call        line
 
+        mov     byte[cor],branco_intenso    ;cabeçalho
+        mov     ax,0
+        push        ax
+        mov     ax,400
+        push        ax
+        mov     ax,639
+        push        ax
+        mov     ax,400
+        push        ax
+        call        line
 
+        ;escrever uma mensagem
+
+    	mov     	cx,56			;n�mero de caracteres
+    	mov     	bx,0
+    	mov     	dh,1		;linha 0-29
+    	mov     	dl,3		;coluna 0-79
+	mov		byte[cor],branco
+l4:
+	call	cursor
+    	mov     al,[bx+mensagem_1]
+	call	caracter
+    	inc     bx	                ;proximo caracter
+	inc 	dl	                ;avanca a coluna
+    	loop    l4
+
+        mov     	cx,69			;n�mero de caracteres
+    	mov     	bx,0
+    	mov     	dh,2		;linha 0-29
+    	mov     	dl,3		;coluna 0-79
+	mov		byte[cor],branco
+
+l5:
+        call	cursor
+    	mov     al,[bx+mensagem_2]
+	call	caracter
+    	inc     bx	                ;proximo caracter
+	inc 	dl	                ;avanca a coluna
+    	loop    l5
 
 delay: ; Esteja atento pois talvez seja importante salvar contexto (no caso, CX, o que NÃO foi feito aqui).
         mov cx, word [velocidade] ; Carrega “velocidade” em cx (contador para loop)
@@ -75,14 +113,7 @@ delay: ; Esteja atento pois talvez seja importante salvar contexto (no caso, CX,
 
 continua:
 
-        mov     byte[cor],preto ; limpa bola
-        mov     ax,[px]
-        push        ax
-        mov     ax,[py]
-        push        ax
-        mov     ax,10
-        push        ax
-        call    full_circle
+        call limpa_bola
 
         mov bx, [vx]
         add [px], bx
@@ -127,7 +158,7 @@ del1:
         cmp [px], bx
         jle movedireita
 
-        mov bx, 470
+        mov bx, 390
         cmp [py], bx
         jge movebaixo
 
@@ -146,9 +177,25 @@ call delay
 call del1
 call del2
 
+limpa_bola:
+        mov     byte[cor],preto ; limpa bola
+        mov     ax,[px]
+        push        ax
+        mov     ax,[py]
+        push        ax
+        mov     ax,10
+        push        ax
+        call    full_circle
+        ret
+
 moveesquerda:
+        call limpa_bola
         mov bx, 120
         mov [px], bx
+        mov ax, [pontos_maquina]
+        add ax, 1
+        mov [pontos_maquina], ax
+        call printa_ponto_maquina
         jmp continua
 movedireita:
 
@@ -165,7 +212,7 @@ movebaixo:
         mov bx, ax
         mov [vy], bx
         jmp continua
-        
+
 movecima:
 
         mov ax, [vy]
@@ -173,6 +220,7 @@ movecima:
         mov bx, ax
         mov [vy], bx
         jmp continua
+
 
 sai:
         mov ah,0 ; set video mode
@@ -199,7 +247,7 @@ verificar_teclas:
 
         call limpa_jogador
         mov ax, 10
-        mov bx, 465
+        mov bx, 385
         cmp [player_y2], bx
         jge fim_verificar_teclas
         add ax, [player_y1]
@@ -294,6 +342,9 @@ rebate_cima2:
         neg ax
         mov bx, ax
         mov [vx], bx
+        mov ax, [pontos_jogador]
+        add ax, 1
+        mov [pontos_jogador], ax
         ret
 
 rebate_baixo1:
@@ -308,6 +359,9 @@ rebate_baixo2:
         neg ax
         mov bx, ax
         mov [vx], bx
+        mov ax, [pontos_jogador]
+        add ax, 1
+        mov [pontos_jogador], ax
         ret
 
 limpa_jogador:
@@ -895,7 +949,8 @@ linha       dw          0
 coluna      dw          0
 deltax      dw      0
 deltay      dw      0   
-mens        db          'nada'
+mensagem_1      db          'Exercicio de Programacao de Sistemas Embarcados 1 2023/2'
+mensagem_2      db          'Mateus Biancardi da Silva 00 x 00 Computador Velocidade Atual 1 de 3'
 velocidade      dw      10
 vx      dw      1
 vy      dw      1
@@ -904,6 +959,8 @@ px      dw      320
 py      dw      240
 player_y1    dw      250
 player_y2    dw      300
+pontos_jogador  db      '0'
+pontos_maquina  db      '0'
 ;*************************************************************************
 segment stack stack
             resb        512
