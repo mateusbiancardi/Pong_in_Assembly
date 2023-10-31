@@ -120,7 +120,7 @@ continua:
         mov bx, [vy]
         add [py], bx
 
-        mov     byte[cor],cyan_claro    ;cabe�a
+        mov     byte[cor],vermelho    ;cabe�a
         mov     ax,[px]
         push        ax
         mov     ax,[py]
@@ -129,7 +129,7 @@ continua:
         push        ax
         call    full_circle
 
-        mov     byte[cor], cyan    ;raquete
+        mov     byte[cor], branco_intenso     ;raquete
         mov     ax,590
         push        ax
         mov     ax,[player_y1]
@@ -315,34 +315,35 @@ se_velocidade_4:
 
 
 printa_ponto_maquina:
-        xor ax,ax
-        mov al,[pontos_maquina_unidade] 
-
         mov ax, [pontos_maquina_unidade]
         cmp ax, 10
-        je zera_pontos_unidades
+        je zera_pontos_unidades_maquina
+        xor ax,ax
+        mov al, byte[pontos_maquina_unidade]
+        add al, 30h
+        mov [pontos_maquina_unidade_print], al
 
         mov     cx,1			;numero de caracteres
         mov     bx,0
         mov     dh,2			;linha 0-29
         mov     dl,35 			;coluna 0-79
-        mov	   byte[cor],rosa
+        mov	   byte[cor],branco
 
-        call printa1
-        
+        call printa1  
         ret
 
-zera_pontos_unidades:
-        mov ax, 0
+zera_pontos_unidades_maquina:
+        xor ax, ax
         mov [pontos_maquina_unidade], ax
         mov ax, [pontos_maquina_dezena]
         add ax, 1
         mov [pontos_maquina_dezena], ax
+        call printa_dezena_maquina
         ret
 
 printa1: 
         call    cursor
-        mov     al,[bx+pontos_maquina_unidade]
+        mov     al,[bx+pontos_maquina_unidade_print]
         call    caracter
         dec     bx
         inc  	dl	                ;avanca a coluna
@@ -351,28 +352,87 @@ printa1:
 
 printa_dezena_maquina:
         xor ax,ax
-        mov bx, [pontos_maquina_dezena]
-        add bx, 1
-        mov [pontos_maquina_dezena], bx
-        mov al, [pontos_maquina_dezena]
+        mov al, byte[pontos_maquina_dezena]
+        add al, 30h
+        mov [pontos_maquina_dezena_print], al
 
         mov     cx,1			;numero de caracteres
         mov     bx,0
         mov     dh,2			;linha 0-29
         mov     dl,34 			;coluna 0-79
-        mov	   byte[cor],rosa
+        mov	   byte[cor],branco
 
         call printa2
         ret
 
 printa2:
         call    cursor
-        mov     al,[bx+pontos_maquina_dezena]
+        mov     al,[bx+pontos_maquina_dezena_print]
         call    caracter
         dec     bx
         inc  	dl	                ;avanca a coluna
         loop    printa2
+        jmp printa_ponto_maquina
+
+printa_ponto_jogador:
+        mov ax, [pontos_jogador_unidade]
+        cmp ax, 10
+        je zera_pontos_unidades_jogador
+        xor ax,ax
+        mov al, byte[pontos_jogador_unidade]
+        add al, 30h
+        mov [pontos_jogador_unidade_print], al
+
+        mov     cx,1			;numero de caracteres
+        mov     bx,0
+        mov     dh,2			;linha 0-29
+        mov     dl,30 			;coluna 0-79
+        mov	   byte[cor],branco
+
+        call printa3  
         ret
+
+zera_pontos_unidades_jogador:
+        xor ax, ax
+        mov [pontos_jogador_unidade], ax
+        mov ax, [pontos_jogador_dezena]
+        add ax, 1
+        mov [pontos_jogador_dezena], ax
+        call printa_dezena_jogador
+        ret
+
+printa3: 
+        call    cursor
+        mov     al,[bx+pontos_jogador_unidade_print]
+        call    caracter
+        dec     bx
+        inc  	dl	                ;avanca a coluna
+        loop    printa3
+        ret
+
+printa_dezena_jogador:
+        xor ax,ax
+        mov al, byte[pontos_jogador_dezena]
+        add al, 30h
+        mov [pontos_jogador_dezena_print], al
+
+        mov     cx,1			;numero de caracteres
+        mov     bx,0
+        mov     dh,2			;linha 0-29
+        mov     dl,29 			;coluna 0-79
+        mov	   byte[cor],branco
+
+        call printa4
+        ret
+
+printa4:
+        call    cursor
+        mov     al,[bx+pontos_maquina_dezena_print]
+        call    caracter
+        dec     bx
+        inc  	dl	                ;avanca a coluna
+        loop    printa4
+        jmp printa_ponto_jogador
 
 
 
@@ -405,9 +465,10 @@ rebate_cima2:
         neg ax
         mov bx, ax
         mov [vx], bx
-        mov ax, [pontos_jogador]
+        mov ax, [pontos_jogador_unidade]
         add ax, 1
-        mov [pontos_jogador], ax
+        mov [pontos_jogador_unidade], ax
+        call printa_ponto_jogador
         ret
 
 rebate_baixo1:
@@ -422,9 +483,10 @@ rebate_baixo2:
         neg ax
         mov bx, ax
         mov [vx], bx
-        mov ax, [pontos_jogador]
+        mov ax, [pontos_jogador_unidade]
         add ax, 1
-        mov [pontos_jogador], ax
+        mov [pontos_jogador_unidade], ax
+        call printa_ponto_jogador
         ret
 
 limpa_jogador:
@@ -1022,9 +1084,16 @@ px      dw      320
 py      dw      240
 player_y1    dw      250
 player_y2    dw      300
-pontos_jogador  db      '0'
-pontos_maquina_unidade  db      '0'
-pontos_maquina_dezena  db      '0'
+
+pontos_jogador_unidade  dw     0
+pontos_jogador_unidade_print  db     0
+pontos_jogador_dezena  dw      0
+pontos_jogador_dezena_print  dw     0
+
+pontos_maquina_unidade  dw     0
+pontos_maquina_unidade_print  db     0
+pontos_maquina_dezena  dw      0
+pontos_maquina_dezena_print  dw     0
 ;*************************************************************************
 segment stack stack
             resb        512
